@@ -35,7 +35,7 @@ export default function Topbar() {
 
   return (
     <div className="sticky top-3 z-30 mx-4 mt-3 md:mx-6">
-      <header className="flex h-14 items-center gap-3 rounded-2xl border border-border bg-card/70 px-3 shadow-card backdrop-blur-xl">
+      <header className="flex h-14 items-center gap-3 rounded-2xl border border-border bg-card px-3 shadow-card">
         {/* Brand mark — mobile only (no sidebar there) */}
         <div className="flex items-center gap-2 pl-1 md:hidden">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-fuchsia-500 text-white">

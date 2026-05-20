@@ -6,9 +6,9 @@ export const Card = forwardRef(function Card({ className, hover = false, ...prop
     <div
       ref={ref}
       className={cn(
-        // min-w-0 lets the card shrink inside grids/flex so charts and tables
-        // inside it can never push the page into horizontal overflow.
-        'min-w-0 rounded-2xl border border-border bg-card/80 text-card-foreground shadow-card backdrop-blur-xl transition-all duration-200',
+        // Opaque (no backdrop-blur) — blur on every card froze iOS scrolling.
+        // min-w-0 lets the card shrink inside grids/flex.
+        'min-w-0 rounded-2xl border border-border bg-card text-card-foreground shadow-card transition-all duration-200',
         hover && 'hover:-translate-y-0.5 hover:shadow-elevated hover:ring-1 hover:ring-primary/20',
         className
       )}

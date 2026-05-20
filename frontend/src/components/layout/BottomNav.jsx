@@ -54,7 +54,7 @@ export default function BottomNav() {
   return (
     <>
       {/* Bottom bar — mobile only */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         {PRIMARY.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={tabClass}>
             {({ isActive }) => (
