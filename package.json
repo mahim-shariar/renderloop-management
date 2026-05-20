@@ -1,0 +1,17 @@
+{
+  "name": "renderloop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Video editing agency management dashboard — full-stack monorepo (frontend + server).",
+  "scripts": {
+    "dev": "concurrently -n server,frontend -c blue,magenta \"npm:dev:server\" \"npm:dev:frontend\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix server start",
+    "install:all": "npm install && npm --prefix frontend install && npm --prefix server install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
