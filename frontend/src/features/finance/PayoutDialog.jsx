@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { useListTeamQuery } from '@/features/team/teamApi.js';
 import { useListProjectsQuery } from '@/features/projects/projectsApi.js';
@@ -88,8 +89,15 @@ export default function PayoutDialog({ open, onOpenChange, salary }) {
   const [updateSalary, { isLoading: updating }] = useUpdateSalaryMutation();
   const submitting = creating || updating;
 
-  const { data: teamData } = useListTeamQuery({ limit: 500 });
-  const { data: projData } = useListProjectsQuery({ limit: 200 });
+  // Fetch fresh selector data each time the dialog opens.
+  const { data: teamData } = useListTeamQuery(
+    { limit: 500 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
+  const { data: projData } = useListProjectsQuery(
+    { limit: 200 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
   const team = teamData?.data?.items || [];
   const projects = projData?.data?.items || [];
 
@@ -132,7 +140,9 @@ export default function PayoutDialog({ open, onOpenChange, salary }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Team member *" error={errors.teamMember?.message}>
             <Select autoFocus {...register('teamMember')}>
-              <option value="">Select…</option>
+              <option value="">
+                {team.length ? 'Select…' : 'No team members yet — add one first'}
+              </option>
               {team.map((m) => (
                 <option key={m._id} value={m._id}>
                   {m.name} ({m.role})
@@ -163,7 +173,13 @@ export default function PayoutDialog({ open, onOpenChange, salary }) {
             <Input type="number" min={0} step="0.01" {...register('amount')} />
           </Field>
           <Field label="Currency">
-            <Input maxLength={3} className="uppercase" {...register('currency')} />
+            <Select {...register('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Due on">
             <Input type="date" {...register('dueOn')} />

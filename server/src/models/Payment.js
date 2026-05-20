@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 
 export const PAYMENT_SOURCES = [
   'client_direct',
@@ -16,7 +17,7 @@ export const PAYMENT_STATUSES = ['pending', 'received', 'failed'];
 const paymentSchema = new mongoose.Schema(
   {
     amountCents: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
     date: { type: Date, required: true, default: () => new Date(), index: true },
     source: {
       type: String,

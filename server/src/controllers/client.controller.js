@@ -8,7 +8,7 @@ export const list = asyncHandler(async (req, res) => {
     status,
     sort: sort || '-createdAt',
     page: page ? Number(page) : 1,
-    limit: limit ? Math.min(100, Number(limit)) : 25,
+    limit: limit ? Math.min(500, Number(limit)) : 25,
   });
   res.json({ success: true, data });
 });

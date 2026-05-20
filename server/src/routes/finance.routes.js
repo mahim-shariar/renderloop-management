@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { CURRENCIES } from '../config/currencies.js';
 import { body, param, query } from 'express-validator';
 import {
   listPayments,
@@ -42,7 +43,7 @@ router.get(
 router.post(
   '/payments',
   body('amountCents').isInt({ min: 0 }).toInt(),
-  body('currency').optional().isString().trim().isLength({ min: 3, max: 3 }),
+  body('currency').optional().isIn(CURRENCIES),
   body('date').optional().isISO8601(),
   body('source').optional().isIn(PAYMENT_SOURCES),
   body('client').optional({ values: 'null' }).isMongoId(),
@@ -79,7 +80,7 @@ router.post(
   '/expenses',
   body('name').isString().trim().isLength({ min: 1, max: 200 }),
   body('amountCents').isInt({ min: 0 }).toInt(),
-  body('currency').optional().isString().trim().isLength({ min: 3, max: 3 }),
+  body('currency').optional().isIn(CURRENCIES),
   body('category').optional().isIn(EXPENSE_CATEGORIES),
   body('date').optional().isISO8601(),
   body('paid').optional().isBoolean().toBoolean(),
@@ -110,7 +111,7 @@ router.post(
   body('period').optional({ values: 'falsy' }).matches(/^\d{4}-\d{2}$/),
   body('project').optional({ values: 'null' }).isMongoId(),
   body('amountCents').isInt({ min: 0 }).toInt(),
-  body('currency').optional().isString().trim().isLength({ min: 3, max: 3 }),
+  body('currency').optional().isIn(CURRENCIES),
   body('paid').optional().isBoolean().toBoolean(),
   body('dueOn').optional({ values: 'null' }).isISO8601(),
   body('transactionRef').optional({ values: 'falsy' }).isString().isLength({ max: 120 }),

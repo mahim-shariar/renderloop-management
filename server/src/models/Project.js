@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 
 export const VIDEO_TYPES = [
   'youtube_long',
@@ -76,7 +77,7 @@ const projectSchema = new mongoose.Schema(
     platform: { type: String, trim: true },
 
     budgetCents: { type: Number, min: 0, default: 0 },
-    currency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
 
     deadline: { type: Date },
     startedAt: { type: Date },

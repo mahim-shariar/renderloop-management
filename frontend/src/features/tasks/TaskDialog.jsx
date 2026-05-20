@@ -94,8 +94,15 @@ export default function TaskDialog({ open, onOpenChange, task }) {
     }
   }
 
-  const { data: usersData } = useListUsersQuery();
-  const { data: projectsData } = useListProjectsQuery({ limit: 200 });
+  // Fetch fresh selector data each time the dialog opens.
+  const { data: usersData } = useListUsersQuery(undefined, {
+    skip: !open,
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: projectsData } = useListProjectsQuery(
+    { limit: 200 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
   const users = usersData?.data?.items || [];
   const projects = projectsData?.data?.items || [];
 

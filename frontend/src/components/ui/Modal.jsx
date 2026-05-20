@@ -14,15 +14,15 @@ export function Modal({ open, onOpenChange, title, description, children, footer
         />
         <Dialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-lg -translate-x-1/2 -translate-y-1/2',
-            'rounded-xl border border-border bg-card p-6 shadow-elevated',
+            'fixed left-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[95vw] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col',
+            'overflow-hidden rounded-xl border border-border bg-card shadow-elevated',
             'data-[state=open]:animate-content-in data-[state=closed]:animate-content-out',
             'focus:outline-none',
             className
           )}
         >
           {(title || description) && (
-            <div className="mb-4 space-y-1 pr-8">
+            <div className="shrink-0 space-y-1 border-b border-border px-6 pb-4 pr-12 pt-5">
               {title && (
                 <Dialog.Title className="text-base font-semibold leading-none tracking-tight text-card-foreground">
                   {title}
@@ -35,8 +35,17 @@ export function Modal({ open, onOpenChange, title, description, children, footer
               )}
             </div>
           )}
-          <div>{children}</div>
-          {footer && <div className="mt-6 flex justify-end gap-2">{footer}</div>}
+
+          {children && (
+            <div className="scrollbar-thin flex-1 overflow-y-auto px-6 py-5">{children}</div>
+          )}
+
+          {footer && (
+            <div className="flex shrink-0 justify-end gap-2 border-t border-border px-6 py-4">
+              {footer}
+            </div>
+          )}
+
           <Dialog.Close
             className="absolute right-4 top-4 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Close"

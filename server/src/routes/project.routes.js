@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { CURRENCIES } from '../config/currencies.js';
 import { body, param, query } from 'express-validator';
 import {
   list,
@@ -42,7 +43,7 @@ const editableFields = [
   body('actualDurationSec').optional({ values: 'null' }).isInt({ min: 0 }).toInt(),
   body('platform').optional({ values: 'falsy' }).isString().trim().isLength({ max: 80 }),
   body('budgetCents').optional({ values: 'null' }).isInt({ min: 0 }).toInt(),
-  body('currency').optional().isString().trim().isLength({ min: 3, max: 3 }),
+  body('currency').optional().isIn(CURRENCIES),
   body('deadline').optional({ values: 'null' }).isISO8601(),
   body('priority').optional().isIn(PROJECT_PRIORITIES),
   body('status').optional().isIn(PROJECT_STATUSES),

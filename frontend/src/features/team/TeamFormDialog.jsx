@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { selectAuthUser } from '@/features/auth/authSlice.js';
 import {
@@ -178,7 +179,7 @@ export default function TeamFormDialog({ open, onOpenChange, member }) {
       }
       className="max-w-2xl"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 scrollbar-thin">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name *" error={errors.name?.message}>
             <Input autoFocus {...register('name')} />
@@ -256,7 +257,13 @@ export default function TeamFormDialog({ open, onOpenChange, member }) {
             <Input type="number" min={0} step="0.01" placeholder="0.00" {...register('rate')} />
           </Field>
           <Field label="Currency">
-            <Input maxLength={3} className="uppercase" {...register('currency')} />
+            <Select {...register('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Payment method">
             <Select {...register('paymentMethod')}>

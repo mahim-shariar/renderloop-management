@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs.j
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { Badge } from '@/components/ui/Badge.jsx';
 import { selectAuthUser } from '@/features/auth/authSlice.js';
@@ -321,7 +322,13 @@ function AgencyTab() {
               <Input type="number" min={0} max={20} disabled={!isAdmin} {...register('defaultRevisionRounds')} />
             </Field>
             <Field label="Default currency" error={errors.defaultCurrency?.message}>
-              <Input maxLength={3} className="uppercase" disabled={!isAdmin} {...register('defaultCurrency')} />
+              <Select disabled={!isAdmin} {...register('defaultCurrency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
             </Field>
           </div>
           <Field label="Address" error={errors.address?.message}>

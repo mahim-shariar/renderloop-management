@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { CURRENCIES } from '../config/currencies.js';
 import { body } from 'express-validator';
 import { get, update } from '../controllers/settings.controller.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
@@ -18,7 +19,7 @@ router.patch(
   body('address').optional({ values: 'falsy' }).isString().isLength({ max: 400 }),
   body('logoUrl').optional({ values: 'falsy' }).isString().isLength({ max: 500 }),
   body('defaultRevisionRounds').optional().isInt({ min: 0, max: 20 }).toInt(),
-  body('defaultCurrency').optional().isString().trim().isLength({ min: 3, max: 3 }),
+  body('defaultCurrency').optional().isIn(CURRENCIES),
   body('invoiceFooter').optional({ values: 'falsy' }).isString().isLength({ max: 1000 }),
   validate,
   update

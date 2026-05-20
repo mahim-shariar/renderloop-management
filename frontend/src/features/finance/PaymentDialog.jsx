@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { useListClientsQuery } from '@/features/clients/clientsApi.js';
 import { useListProjectsQuery } from '@/features/projects/projectsApi.js';
@@ -88,8 +89,15 @@ export default function PaymentDialog({ open, onOpenChange, payment }) {
   const [updatePayment, { isLoading: updating }] = useUpdatePaymentMutation();
   const submitting = creating || updating;
 
-  const { data: clientsData } = useListClientsQuery({ limit: 200 });
-  const { data: projectsData } = useListProjectsQuery({ limit: 200 });
+  // Fetch fresh selector data each time the dialog opens.
+  const { data: clientsData } = useListClientsQuery(
+    { limit: 200 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
+  const { data: projectsData } = useListProjectsQuery(
+    { limit: 200 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
   const clients = clientsData?.data?.items || [];
   const projects = projectsData?.data?.items || [];
 
@@ -134,7 +142,13 @@ export default function PaymentDialog({ open, onOpenChange, payment }) {
             <Input type="number" min={0} step="0.01" autoFocus {...register('amount')} />
           </Field>
           <Field label="Currency">
-            <Input maxLength={3} className="uppercase" {...register('currency')} />
+            <Select {...register('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Date *" error={errors.date?.message}>
             <Input type="date" {...register('date')} />

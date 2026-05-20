@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { Badge } from '@/components/ui/Badge.jsx';
 import { useCreateExpenseMutation, useUpdateExpenseMutation } from './financeApi.js';
@@ -161,7 +162,13 @@ export default function ExpenseDialog({ open, onOpenChange, expense }) {
             <Input type="number" min={0} step="0.01" {...register('amount')} />
           </Field>
           <Field label="Currency">
-            <Input maxLength={3} className="uppercase" {...register('currency')} />
+            <Select {...register('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Category">
             <Select {...register('category')}>

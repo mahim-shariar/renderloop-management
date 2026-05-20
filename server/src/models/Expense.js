@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 
 export const EXPENSE_CATEGORIES = [
   'team_salary',
@@ -13,7 +14,7 @@ const expenseSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 200 },
     amountCents: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
     category: {
       type: String,
       enum: EXPENSE_CATEGORIES,

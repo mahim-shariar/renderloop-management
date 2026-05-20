@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 
 // Singleton document — exactly one row identified by key: 'default'.
 const agencySettingsSchema = new mongoose.Schema(
@@ -10,7 +11,7 @@ const agencySettingsSchema = new mongoose.Schema(
     address: { type: String, trim: true },
     logoUrl: { type: String, trim: true },
     defaultRevisionRounds: { type: Number, default: 2, min: 0, max: 20 },
-    defaultCurrency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    defaultCurrency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
     invoiceFooter: {
       type: String,
       trim: true,

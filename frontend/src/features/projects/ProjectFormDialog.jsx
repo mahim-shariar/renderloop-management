@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import Select from '@/components/ui/Select.jsx';
+import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { useListClientsQuery } from '@/features/clients/clientsApi.js';
 import { useListUsersQuery } from '@/features/users/usersApi.js';
@@ -74,11 +75,12 @@ const EMPTY = {
   assignedEditors: [],
 };
 
-function Field({ label, error, children, className }) {
+function Field({ label, error, hint, children, className }) {
   return (
     <div className={cn('space-y-1.5', className)}>
       <label className="text-sm font-medium text-foreground">{label}</label>
       {children}
+      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
@@ -166,8 +168,15 @@ export default function ProjectFormDialog({ open, onOpenChange, project, default
   const [updateProject, { isLoading: updating }] = useUpdateProjectMutation();
   const submitting = creating || updating;
 
-  const { data: clientsData } = useListClientsQuery({ limit: 200 });
-  const { data: usersData } = useListUsersQuery({ role: 'admin,manager,editor' });
+  // Fetch fresh selector data each time the dialog opens.
+  const { data: clientsData } = useListClientsQuery(
+    { limit: 200 },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
+  const { data: usersData } = useListUsersQuery(
+    { role: 'admin,manager,editor' },
+    { skip: !open, refetchOnMountOrArgChange: true }
+  );
 
   const clients = clientsData?.data?.items || [];
   const users = usersData?.data?.items || [];
@@ -226,15 +235,21 @@ export default function ProjectFormDialog({ open, onOpenChange, project, default
       description={isEdit ? 'Update project details.' : 'Add a new project to the pipeline.'}
       className="max-w-3xl"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 scrollbar-thin">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Field label="Title *" error={errors.title?.message}>
           <Input autoFocus {...register('title')} />
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Client *" error={errors.client?.message}>
+          <Field
+            label="Client *"
+            error={errors.client?.message}
+            hint={clients.length === 0 ? 'No clients yet — add one in the Clients page.' : undefined}
+          >
             <Select {...register('client')}>
-              <option value="">Select a client…</option>
+              <option value="">
+                {clients.length ? 'Select a client…' : 'No clients available'}
+              </option>
               {clients.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name}
@@ -299,7 +314,13 @@ export default function ProjectFormDialog({ open, onOpenChange, project, default
             <Input type="number" min={0} step="0.01" placeholder="0.00" {...register('budget')} />
           </Field>
           <Field label="Currency">
-            <Input maxLength={3} {...register('currency')} className="uppercase" />
+            <Select {...register('currency')}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Deadline">
             <Input type="date" {...register('deadline')} />

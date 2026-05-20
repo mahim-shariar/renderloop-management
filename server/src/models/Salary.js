@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 
 export const SALARY_TYPES = ['monthly', 'per_project'];
 
@@ -14,7 +15,7 @@ const salarySchema = new mongoose.Schema(
     period: { type: String, trim: true, maxlength: 7 }, // YYYY-MM
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     amountCents: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
     paid: { type: Boolean, default: false, index: true },
     paidAt: { type: Date },
     dueOn: { type: Date },

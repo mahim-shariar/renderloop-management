@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CURRENCIES } from '../config/currencies.js';
 import { encrypt } from '../utils/crypto.js';
 
 export const TEAM_ROLES = [
@@ -23,7 +24,7 @@ const teamMemberSchema = new mongoose.Schema(
     specialties: [{ type: String, trim: true, maxlength: 40 }],
     salaryType: { type: String, enum: SALARY_TYPES, default: 'per_project' },
     rateCents: { type: Number, min: 0, default: 0 },
-    currency: { type: String, default: 'USD', uppercase: true, maxlength: 3 },
+    currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
     availability: {
       type: String,
       enum: AVAILABILITIES,
