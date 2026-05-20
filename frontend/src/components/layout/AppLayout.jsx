@@ -17,9 +17,9 @@ export default function AppLayout() {
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background"
       >
-        <div className="absolute -left-40 -top-44 h-[40rem] w-[40rem] rounded-full bg-primary/20 blur-[140px]" />
-        <div className="absolute -bottom-52 right-[-10rem] h-[36rem] w-[36rem] rounded-full bg-fuchsia-500/10 blur-[150px]" />
-        <div className="absolute left-1/2 top-1/3 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-sky-500/5 blur-[150px]" />
+        {/* Lighter blur radii — heavy filter:blur freezes Safari on iPhone. */}
+        <div className="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-primary/20 blur-[80px]" />
+        <div className="absolute -bottom-40 right-[-6rem] h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[80px]" />
       </div>
 
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />

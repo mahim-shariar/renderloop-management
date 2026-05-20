@@ -30,7 +30,8 @@ const schema = z.object({
   projectManager: z.string().optional().or(z.literal('')),
   videoType: z.string(),
   aspectRatio: z.string(),
-  targetDurationSec: z.union([z.string(), z.number()]).optional(),
+  targetMinutes: z.union([z.string(), z.number()]).optional(),
+  actualMinutes: z.union([z.string(), z.number()]).optional(),
   platform: z.string().max(80).optional().or(z.literal('')),
   budget: z.union([z.string(), z.number()]).optional(),
   currency: z.string().length(3),
@@ -59,7 +60,8 @@ const EMPTY = {
   projectManager: '',
   videoType: 'youtube_long',
   aspectRatio: '16:9',
-  targetDurationSec: '',
+  targetMinutes: '',
+  actualMinutes: '',
   platform: '',
   budget: '',
   currency: 'USD',
@@ -95,7 +97,11 @@ function toFormShape(project) {
     projectManager: project.projectManager?._id || project.projectManager || '',
     videoType: project.videoType || 'youtube_long',
     aspectRatio: project.aspectRatio || '16:9',
-    targetDurationSec: project.targetDurationSec ?? '',
+    // Durations are stored in seconds but shown/edited in minutes.
+    targetMinutes:
+      project.targetDurationSec != null ? project.targetDurationSec / 60 : '',
+    actualMinutes:
+      project.actualDurationSec != null ? project.actualDurationSec / 60 : '',
     platform: project.platform || '',
     budget: project.budgetCents != null ? (project.budgetCents / 100).toString() : '',
     currency: project.currency || 'USD',
@@ -141,10 +147,16 @@ function toServerPayload(values) {
         a.payout !== '' && a.payout != null ? Math.round(Number(a.payout) * 100) : 0,
     })),
   };
-  if (values.targetDurationSec !== '' && values.targetDurationSec != null) {
-    out.targetDurationSec = Number(values.targetDurationSec);
+  // Minutes in the form → seconds in the DB.
+  if (values.targetMinutes !== '' && values.targetMinutes != null) {
+    out.targetDurationSec = Math.round(Number(values.targetMinutes) * 60);
   } else {
     out.targetDurationSec = null;
+  }
+  if (values.actualMinutes !== '' && values.actualMinutes != null) {
+    out.actualDurationSec = Math.round(Number(values.actualMinutes) * 60);
+  } else {
+    out.actualDurationSec = null;
   }
   if (values.budget !== '' && values.budget != null) {
     out.budgetCents = Math.round(Number(values.budget) * 100);
@@ -304,8 +316,23 @@ export default function ProjectFormDialog({ open, onOpenChange, project, default
               ))}
             </Select>
           </Field>
-          <Field label="Target duration (sec)">
-            <Input type="number" min={0} placeholder="e.g. 480" {...register('targetDurationSec')} />
+          <Field label="Target duration (minutes)">
+            <Input
+              type="number"
+              min={0}
+              step="0.5"
+              placeholder="e.g. 8"
+              {...register('targetMinutes')}
+            />
+          </Field>
+          <Field label="Actual duration (minutes)">
+            <Input
+              type="number"
+              min={0}
+              step="0.5"
+              placeholder="filled on delivery"
+              {...register('actualMinutes')}
+            />
           </Field>
           <Field label="Platform">
             <Input placeholder="e.g. YouTube" {...register('platform')} />

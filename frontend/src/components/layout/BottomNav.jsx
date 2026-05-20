@@ -54,7 +54,7 @@ export default function BottomNav() {
   return (
     <>
       {/* Bottom bar — mobile only */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {PRIMARY.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end} className={tabClass}>
             {({ isActive }) => (
@@ -88,15 +88,18 @@ export default function BottomNav() {
       <AnimatePresence>
         {moreOpen && (
           <div className="fixed inset-0 z-50 md:hidden">
-            <motion.div
-              className="absolute inset-0 bg-black/50"
+            {/* Backdrop — a real <button> so the tap-to-close reliably fires on iOS Safari */}
+            <motion.button
+              type="button"
+              aria-label="Close menu"
+              className="absolute inset-0 h-full w-full cursor-pointer bg-black/50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMoreOpen(false)}
             />
             <motion.div
-              className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-4 pb-6"
+              className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-border bg-card p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
