@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Clock,
 } from 'lucide-react';
+import { useListSalariesQuery } from '@/features/finance/financeApi.js';
 import Avatar from '@/components/ui/Avatar.jsx';
 import Button from '@/components/ui/Button.jsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card.jsx';
@@ -51,6 +52,90 @@ function StatCard({ label, value, hint, badge }) {
         <CardContent>{badge || <span className="text-xs text-muted-foreground">{hint}</span>}</CardContent>
       )}
     </Card>
+  );
+}
+
+function PayoutsTab({ memberId, canManage }) {
+  const { data, isLoading } = useListSalariesQuery(
+    { teamMemberId: memberId, limit: 200 },
+    { skip: !canManage }
+  );
+
+  if (!canManage) {
+    return (
+      <EmptyState
+        icon={Lock}
+        title="Finance access required"
+        description="Only admins and managers can view payout history."
+      />
+    );
+  }
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  const items = data?.data?.items || [];
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={Wallet}
+        title="No payouts yet"
+        description="Salaries and per-project payouts scheduled for this member will appear here."
+      />
+    );
+  }
+
+  return (
+    <Table
+      data={items}
+      pageSize={15}
+      columns={[
+        {
+          key: 'period',
+          header: 'Period / Type',
+          accessor: (s) => s.period || s.type || '',
+          render: (s) => (
+            <div>
+              <div className="font-medium text-foreground">{s.period || '—'}</div>
+              <div className="text-xs capitalize text-muted-foreground">
+                {(s.type || '').replace(/_/g, ' ')}
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'project',
+          header: 'Project',
+          accessor: (s) => s.project?.title || '',
+          render: (s) => s.project?.title || '—',
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          accessor: (s) => (s.paid ? 'paid' : 'pending'),
+          render: (s) => (
+            <Badge variant={s.paid ? 'success' : 'warning'}>
+              {s.paid ? 'Paid' : 'Pending'}
+            </Badge>
+          ),
+        },
+        {
+          key: 'date',
+          header: 'Paid / Due',
+          accessor: (s) =>
+            new Date(s.paidAt || s.dueOn || s.createdAt || 0).getTime(),
+          render: (s) => {
+            const d = s.paidAt || s.dueOn;
+            return d ? format(new Date(d), 'MMM d, yyyy') : '—';
+          },
+        },
+        {
+          key: 'amount',
+          header: 'Amount',
+          headerClassName: 'text-right',
+          cellClassName: 'text-right font-medium',
+          accessor: (s) => s.amountCents,
+          render: (s) => formatCents(s.amountCents, s.currency),
+        },
+      ]}
+    />
   );
 }
 
@@ -157,8 +242,8 @@ export default function TeamDetailPage() {
         />
         <StatCard
           label="Pending payouts"
-          value={formatCents(m.pendingPayouts || 0, m.currency || 'USD')}
-          badge={<Badge variant="muted">Phase 7</Badge>}
+          value={formatCents(m.pendingPayouts || 0, 'USD')}
+          hint={`${formatCents(m.totalEarnings || 0, 'USD')} paid to date`}
         />
       </div>
 
@@ -289,11 +374,7 @@ export default function TeamDetailPage() {
         </TabsContent>
 
         <TabsContent value="payouts">
-          <EmptyState
-            icon={Wallet}
-            title="Payout history arrives in Phase 7"
-            description="Once the Salary model ships, every paid and pending payout for this team member will surface here."
-          />
+          <PayoutsTab memberId={m._id} canManage={canManage} />
         </TabsContent>
       </Tabs>
 

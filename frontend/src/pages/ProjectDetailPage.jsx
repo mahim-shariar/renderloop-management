@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/Skeleton.jsx';
 import { EmptyState } from '@/components/ui/EmptyState.jsx';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.jsx';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs.jsx';
+import { Table } from '@/components/ui/Table.jsx';
 import Avatar from '@/components/ui/Avatar.jsx';
 import Input from '@/components/ui/Input.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
@@ -47,10 +48,86 @@ import {
 } from '@/features/projects/projectsApi.js';
 import { selectAuthUser } from '@/features/auth/authSlice.js';
 import { useListActivityQuery } from '@/features/activity/activityApi.js';
+import { useListPaymentsQuery } from '@/features/finance/financeApi.js';
+import { PAYMENT_STATUSES } from '@/features/finance/financeConstants.js';
 import { formatDistanceToNow } from 'date-fns';
 
 function videoTypeLabel(key) {
   return VIDEO_TYPES.find((v) => v.key === key)?.label || key;
+}
+
+function PaymentsTab({ projectId, canManage }) {
+  const { data, isLoading } = useListPaymentsQuery(
+    { projectId, limit: 100 },
+    { skip: !canManage }
+  );
+
+  if (!canManage) {
+    return (
+      <EmptyState
+        icon={Film}
+        title="Finance access required"
+        description="Only admins and managers can see payments linked to this project."
+      />
+    );
+  }
+  if (isLoading) return <Skeleton className="h-40 w-full" />;
+  const items = data?.data?.items || [];
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={Film}
+        title="No payments linked"
+        description="Payments logged against this project will appear here."
+      />
+    );
+  }
+
+  return (
+    <Table
+      data={items}
+      pageSize={10}
+      columns={[
+        {
+          key: 'date',
+          header: 'Date',
+          accessor: (p) => new Date(p.date).getTime(),
+          render: (p) => format(new Date(p.date), 'MMM d, yyyy'),
+        },
+        {
+          key: 'invoiceNumber',
+          header: 'Invoice',
+          accessor: (p) => p.invoiceNumber || '',
+          render: (p) => p.invoiceNumber || '—',
+        },
+        {
+          key: 'source',
+          header: 'Source',
+          accessor: (p) => p.source || '',
+          render: (p) => (
+            <span className="capitalize">{(p.source || '—').replace(/_/g, ' ')}</span>
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          accessor: (p) => p.status,
+          render: (p) => {
+            const st = PAYMENT_STATUSES.find((s) => s.key === p.status);
+            return <Badge variant={st?.tone || 'muted'}>{st?.label || p.status}</Badge>;
+          },
+        },
+        {
+          key: 'amount',
+          header: 'Amount',
+          headerClassName: 'text-right',
+          cellClassName: 'text-right font-medium',
+          accessor: (p) => p.amountCents,
+          render: (p) => formatCents(p.amountCents, p.currency),
+        },
+      ]}
+    />
+  );
 }
 
 function ActivityTab({ projectId }) {
@@ -681,11 +758,7 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="payments">
-          <EmptyState
-            icon={Film}
-            title="Payments arrive in Phase 7"
-            description="Linked invoices and payment status will surface here once the finance module is built."
-          />
+          <PaymentsTab projectId={p._id} canManage={canManage} />
         </TabsContent>
       </Tabs>
 

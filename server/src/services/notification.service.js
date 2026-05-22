@@ -3,10 +3,13 @@ import Project from '../models/Project.js';
 import Salary from '../models/Salary.js';
 import Payment from '../models/Payment.js';
 import User from '../models/User.js';
+import { sendToUser } from './push.service.js';
 
 /**
  * Create a notification. If dedupeKey is provided and a notification with that
  * key already exists for the user, this is a no-op (used by the time sweep).
+ * On creation, also fires a web push to every subscribed device for the user
+ * so it appears in the OS notification tray even when the tab is closed.
  */
 export async function notify(userId, { type, title, body, link, dedupeKey, meta }) {
   if (!userId) return null;
@@ -14,7 +17,19 @@ export async function notify(userId, { type, title, body, link, dedupeKey, meta 
     const existing = await Notification.findOne({ user: userId, dedupeKey });
     if (existing) return existing;
   }
-  return Notification.create({ user: userId, type, title, body, link, dedupeKey, meta });
+  const doc = await Notification.create({ user: userId, type, title, body, link, dedupeKey, meta });
+  // Fire-and-forget; push failures must not break the request that created the notification.
+  sendToUser(userId, {
+    id: doc._id.toString(),
+    type,
+    title,
+    body: body || '',
+    link: link || '/',
+  }).catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('[notify] push dispatch failed:', err?.message);
+  });
+  return doc;
 }
 
 export async function notifyMany(userIds, payload) {

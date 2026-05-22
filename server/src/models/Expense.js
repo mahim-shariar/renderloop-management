@@ -13,8 +13,12 @@ export const EXPENSE_CATEGORIES = [
 const expenseSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 200 },
+    // amountCents/currency are always stored in USD; the original entry is kept below.
     amountCents: { type: Number, required: true, min: 0 },
     currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
+    originalAmountCents: { type: Number, min: 0 },
+    originalCurrency: { type: String, enum: CURRENCIES, uppercase: true },
+    exchangeRate: { type: Number, min: 0 },
     category: {
       type: String,
       enum: EXPENSE_CATEGORIES,

@@ -119,6 +119,34 @@
   h3 {
     letter-spacing: -0.018em;
   }
+
+  /* Ambient glow behind the app — gradients only, no filter:blur (which
+     freezes iOS Safari when painted on a fixed layer). */
+  .app-ambient {
+    background-image:
+      radial-gradient(
+        38rem 38rem at -5% -10%,
+        hsl(var(--primary) / 0.18),
+        transparent 60%
+      ),
+      radial-gradient(
+        32rem 32rem at 105% 110%,
+        hsl(292 84% 61% / 0.12),
+        transparent 60%
+      );
+  }
+
+  /* iOS Safari: backdrop-filter over fixed/scrolling layers freezes the
+     page. Disable it on iOS and fall back to opaque backgrounds. */
+  html.ios [class*='backdrop-blur'] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  /* The desktop sidebar relies on blur for legibility — make it opaque
+     once the blur is stripped on iOS (iPad). */
+  html.ios aside {
+    background-color: hsl(var(--card));
+  }
 }
 
 @layer utilities {

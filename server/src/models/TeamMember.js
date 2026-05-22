@@ -13,7 +13,17 @@ export const TEAM_ROLES = [
 
 export const SALARY_TYPES = ['monthly', 'per_project', 'per_minute_of_footage'];
 export const AVAILABILITIES = ['available', 'busy', 'on_leave'];
-export const PAYOUT_METHODS = ['wise', 'payoneer', 'bank', 'crypto', 'paypal', 'other'];
+export const PAYOUT_METHODS = [
+  'wise',
+  'payoneer',
+  'bank',
+  'crypto',
+  'paypal',
+  'bkash',
+  'nagad',
+  'rocket',
+  'other',
+];
 
 const teamMemberSchema = new mongoose.Schema(
   {

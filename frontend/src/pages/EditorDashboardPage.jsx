@@ -74,6 +74,8 @@ export default function EditorDashboardPage() {
   }
 
   const { cards, myProjects, myTasks } = data.data;
+  // All payouts are stored in USD but shown in the editor's own currency.
+  const payCurrency = cards.displayCurrency || 'USD';
 
   return (
     <div className="space-y-6">
@@ -93,8 +95,8 @@ export default function EditorDashboardPage() {
         <StatCard icon={Target} accent="#8b5cf6" label="On-time delivery" value={`${cards.onTimePct}%`} />
         <StatCard icon={CheckSquare} accent="#f59e0b" label="Open tasks" value={cards.openTasks} />
         <StatCard icon={CalendarClock} accent="#f59e0b" label="Deadlines (next 7d)" value={cards.upcomingDeadlines} />
-        <StatCard icon={CircleDollarSign} accent="#10b981" label="Earnings this month" value={formatCents(cards.earningsThisMonth)} />
-        <StatCard icon={Wallet} accent="#8b5cf6" label="Pending payout" value={formatCents(cards.pendingPayout)} />
+        <StatCard icon={CircleDollarSign} accent="#10b981" label="Earnings this month" value={formatCents(cards.earningsThisMonth, payCurrency)} />
+        <StatCard icon={Wallet} accent="#8b5cf6" label="Pending payout" value={formatCents(cards.pendingPayout, payCurrency)} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -125,7 +127,7 @@ export default function EditorDashboardPage() {
                     </div>
                     {p.myPayoutCents > 0 && (
                       <span className="shrink-0 text-sm font-semibold text-emerald-400">
-                        {formatCents(p.myPayoutCents)}
+                        {formatCents(p.myPayoutCents, payCurrency)}
                       </span>
                     )}
                   </div>

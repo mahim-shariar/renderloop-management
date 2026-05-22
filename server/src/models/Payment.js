@@ -16,8 +16,13 @@ export const PAYMENT_STATUSES = ['pending', 'received', 'failed'];
 
 const paymentSchema = new mongoose.Schema(
   {
+    // amountCents/currency are always stored in USD. The original entry is
+    // preserved below for audit and display in the currency it was given in.
     amountCents: { type: Number, required: true, min: 0 },
     currency: { type: String, enum: CURRENCIES, default: 'USD', uppercase: true },
+    originalAmountCents: { type: Number, min: 0 },
+    originalCurrency: { type: String, enum: CURRENCIES, uppercase: true },
+    exchangeRate: { type: Number, min: 0 },
     date: { type: Date, required: true, default: () => new Date(), index: true },
     source: {
       type: String,

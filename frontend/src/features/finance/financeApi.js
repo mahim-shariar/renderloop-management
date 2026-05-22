@@ -120,6 +120,11 @@ export const financeApi = api.injectEndpoints({
     buildInvoiceFromProject: build.query({
       query: (projectId) => `/finance/invoice/from-project/${projectId}`,
     }),
+
+    // Currency exchange rates (USD-base)
+    exchangeRates: build.query({
+      query: () => '/finance/exchange-rates',
+    }),
   }),
 });
 
@@ -141,4 +146,5 @@ export const {
   useDeleteSalaryMutation,
   useMarkSalaryPaidMutation,
   useBuildInvoiceFromProjectQuery,
+  useExchangeRatesQuery,
 } = financeApi;

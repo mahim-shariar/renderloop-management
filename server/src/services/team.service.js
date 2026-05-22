@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import TeamMember from '../models/TeamMember.js';
 import Project from '../models/Project.js';
 import User from '../models/User.js';
+import Salary from '../models/Salary.js';
 import ApiError from '../utils/ApiError.js';
 import { decrypt } from '../utils/crypto.js';
 
@@ -31,13 +32,39 @@ async function attachStats(members) {
     .filter((m) => m.user)
     .map((m) => (typeof m.user === 'object' ? m.user._id : m.user));
 
+  // Payouts are keyed by TeamMember id (not user), so they exist even for
+  // members without a linked login account. All amounts are stored in USD.
+  const memberObjectIds = members
+    .map((m) => m._id)
+    .filter(Boolean)
+    .map((id) => new mongoose.Types.ObjectId(id));
+  const payoutAgg = memberObjectIds.length
+    ? await Salary.aggregate([
+        { $match: { teamMember: { $in: memberObjectIds } } },
+        {
+          $group: {
+            _id: '$teamMember',
+            totalEarnings: { $sum: { $cond: ['$paid', '$amountCents', 0] } },
+            pendingPayouts: { $sum: { $cond: ['$paid', 0, '$amountCents'] } },
+          },
+        },
+      ])
+    : [];
+  const payoutMap = new Map(payoutAgg.map((r) => [r._id.toString(), r]));
+  const payoutsFor = (m) => {
+    const r = m._id ? payoutMap.get(m._id.toString()) : null;
+    return {
+      totalEarnings: r?.totalEarnings || 0,
+      pendingPayouts: r?.pendingPayouts || 0,
+    };
+  };
+
   if (!userIds.length) {
     return members.map((m) => ({
       ...m,
       activeProjects: 0,
       projectsCompletedThisMonth: 0,
-      totalEarnings: 0,
-      pendingPayouts: 0,
+      ...payoutsFor(m),
       avgTurnaroundDays: null,
     }));
   }
@@ -101,9 +128,8 @@ async function attachStats(members) {
       activeProjects: uid ? activeMap.get(uid) || 0 : 0,
       projectsCompletedThisMonth: uid ? completedMap.get(uid) || 0 : 0,
       avgTurnaroundDays: uid && turnaroundMap.has(uid) ? Number(turnaroundMap.get(uid).toFixed(1)) : null,
-      // totalEarnings / pendingPayouts come from Salary model (Phase 7) — return 0 for now
-      totalEarnings: 0,
-      pendingPayouts: 0,
+      // totalEarnings / pendingPayouts are summed from the Salary model (USD).
+      ...payoutsFor(m),
     };
   });
 }

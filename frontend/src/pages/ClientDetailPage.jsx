@@ -16,6 +16,8 @@ import {
   Trash2,
   MessageSquarePlus,
   Loader2,
+  FolderKanban,
+  Lock,
 } from 'lucide-react';
 import Button from '@/components/ui/Button.jsx';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card.jsx';
@@ -24,6 +26,7 @@ import { Skeleton } from '@/components/ui/Skeleton.jsx';
 import { EmptyState } from '@/components/ui/EmptyState.jsx';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog.jsx';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs.jsx';
+import { Table } from '@/components/ui/Table.jsx';
 import Avatar from '@/components/ui/Avatar.jsx';
 import Textarea from '@/components/ui/Textarea.jsx';
 import { selectAuthUser } from '@/features/auth/authSlice.js';
@@ -33,6 +36,12 @@ import {
   useAddClientNoteMutation,
   useDeleteClientNoteMutation,
 } from '@/features/clients/clientsApi.js';
+import { useListProjectsQuery } from '@/features/projects/projectsApi.js';
+import { useListPaymentsQuery } from '@/features/finance/financeApi.js';
+import { PROJECT_STATUSES, formatCents } from '@/features/projects/projectConstants.js';
+import { PAYMENT_STATUSES } from '@/features/finance/financeConstants.js';
+import ProjectStatusBadge from '@/features/projects/StatusBadge.jsx';
+import DeadlineBadge from '@/features/projects/DeadlineBadge.jsx';
 import ClientFormDialog from '@/features/clients/ClientFormDialog.jsx';
 
 function InfoRow({ icon: Icon, label, value }) {
@@ -157,6 +166,145 @@ function CommunicationTab({ client }) {
   );
 }
 
+function ProjectsTab({ clientId }) {
+  const { data, isLoading } = useListProjectsQuery({ clientId, limit: 200 });
+
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  const items = data?.data?.items || [];
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={FolderKanban}
+        title="No projects yet"
+        description="Projects created for this client will be listed here, grouped by status."
+      />
+    );
+  }
+
+  // Group projects by status, then render groups in the canonical status order.
+  const byStatus = new Map();
+  for (const p of items) {
+    if (!byStatus.has(p.status)) byStatus.set(p.status, []);
+    byStatus.get(p.status).push(p);
+  }
+
+  return (
+    <div className="space-y-6">
+      {PROJECT_STATUSES.filter((s) => byStatus.has(s.key)).map((s) => (
+        <div key={s.key}>
+          <div className="mb-2 flex items-center gap-2">
+            <ProjectStatusBadge status={s.key} />
+            <span className="text-xs text-muted-foreground">
+              {byStatus.get(s.key).length}{' '}
+              {byStatus.get(s.key).length === 1 ? 'project' : 'projects'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {byStatus.get(s.key).map((p) => (
+              <Link
+                key={p._id}
+                to={`/projects/${p._id}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">
+                    {p.title}
+                  </div>
+                  <div className="truncate text-xs capitalize text-muted-foreground">
+                    {p.videoType?.replace(/_/g, ' ') || '—'}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {p.budgetCents > 0 && (
+                    <span className="text-sm font-medium text-foreground">
+                      {formatCents(p.budgetCents, p.currency)}
+                    </span>
+                  )}
+                  <DeadlineBadge deadline={p.deadline} status={p.status} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PaymentsTab({ clientId, canManage }) {
+  const { data, isLoading } = useListPaymentsQuery(
+    { clientId, limit: 200 },
+    { skip: !canManage }
+  );
+
+  if (!canManage) {
+    return (
+      <EmptyState
+        icon={Lock}
+        title="Finance access required"
+        description="Only admins and managers can view payment history."
+      />
+    );
+  }
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  const items = data?.data?.items || [];
+  if (items.length === 0) {
+    return (
+      <EmptyState
+        icon={CreditCard}
+        title="No payments recorded"
+        description="Income logged against this client will appear here."
+      />
+    );
+  }
+
+  return (
+    <Table
+      data={items}
+      pageSize={15}
+      columns={[
+        {
+          key: 'date',
+          header: 'Date',
+          accessor: (p) => new Date(p.date).getTime(),
+          render: (p) => format(new Date(p.date), 'MMM d, yyyy'),
+        },
+        {
+          key: 'project',
+          header: 'Project',
+          accessor: (p) => p.project?.title || '',
+          render: (p) => p.project?.title || '—',
+        },
+        {
+          key: 'source',
+          header: 'Source',
+          accessor: (p) => p.source || '',
+          render: (p) => (
+            <span className="capitalize">{(p.source || '—').replace(/_/g, ' ')}</span>
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          accessor: (p) => p.status,
+          render: (p) => {
+            const st = PAYMENT_STATUSES.find((s) => s.key === p.status);
+            return <Badge variant={st?.tone || 'muted'}>{st?.label || p.status}</Badge>;
+          },
+        },
+        {
+          key: 'amount',
+          header: 'Amount',
+          headerClassName: 'text-right',
+          cellClassName: 'text-right font-medium',
+          accessor: (p) => p.amountCents,
+          render: (p) => formatCents(p.amountCents, p.currency),
+        },
+      ]}
+    />
+  );
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -166,6 +314,11 @@ export default function ClientDetailPage() {
 
   const { data, isLoading, isError, error } = useGetClientQuery(id);
   const [deleteClient, { isLoading: deleting }] = useDeleteClientMutation();
+  // Payments power the revenue stat cards — staff only.
+  const { data: paymentsData } = useListPaymentsQuery(
+    { clientId: id, limit: 500 },
+    { skip: !canManage }
+  );
 
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -194,6 +347,13 @@ export default function ClientDetailPage() {
   }
 
   const client = data.data.client;
+  const payments = paymentsData?.data?.items || [];
+  const lifetimeRevenue = payments
+    .filter((p) => p.status === 'received')
+    .reduce((sum, p) => sum + (p.amountCents || 0), 0);
+  const pendingRevenue = payments
+    .filter((p) => p.status === 'pending')
+    .reduce((sum, p) => sum + (p.amountCents || 0), 0);
 
   async function handleDelete() {
     try {
@@ -246,27 +406,36 @@ export default function ClientDetailPage() {
             <CardDescription>Active projects</CardDescription>
             <CardTitle className="text-2xl">{client.activeProjects ?? 0}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Badge variant="muted">Phase 5</Badge>
-          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Lifetime revenue</CardDescription>
-            <CardTitle className="text-2xl">$0</CardTitle>
+            <CardTitle className="text-2xl">
+              {canManage ? formatCents(lifetimeRevenue, 'USD') : '—'}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Badge variant="muted">Phase 7</Badge>
-          </CardContent>
+          {canManage && (
+            <CardContent>
+              <span className="text-xs text-muted-foreground">
+                {payments.filter((p) => p.status === 'received').length} payments received
+              </span>
+            </CardContent>
+          )}
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Pending</CardDescription>
-            <CardTitle className="text-2xl">$0</CardTitle>
+            <CardTitle className="text-2xl">
+              {canManage ? formatCents(pendingRevenue, 'USD') : '—'}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Badge variant="muted">Phase 7</Badge>
-          </CardContent>
+          {canManage && (
+            <CardContent>
+              <span className="text-xs text-muted-foreground">
+                {payments.filter((p) => p.status === 'pending').length} awaiting payment
+              </span>
+            </CardContent>
+          )}
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -355,19 +524,11 @@ export default function ClientDetailPage() {
         </TabsContent>
 
         <TabsContent value="projects">
-          <EmptyState
-            icon={Building2}
-            title="Projects arrive in Phase 5"
-            description="This tab will list every project for this client, grouped by status."
-          />
+          <ProjectsTab clientId={client._id} />
         </TabsContent>
 
         <TabsContent value="payments">
-          <EmptyState
-            icon={CreditCard}
-            title="Payments arrive in Phase 7"
-            description="Income history, pending balances, and invoices will live here."
-          />
+          <PaymentsTab clientId={client._id} canManage={canManage} />
         </TabsContent>
 
         <TabsContent value="notes">

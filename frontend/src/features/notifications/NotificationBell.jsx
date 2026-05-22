@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 import {
   Dropdown,
   DropdownTrigger,
@@ -11,6 +13,7 @@ import {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from './notificationsApi.js';
+import { usePushNotifications } from './usePushNotifications.js';
 import { cn } from '@/lib/cn.js';
 
 const TYPE_DOT = {
@@ -32,13 +35,75 @@ export default function NotificationBell() {
   const { data } = useListNotificationsQuery(undefined, { pollingInterval: 30000 });
   const [markRead] = useMarkNotificationReadMutation();
   const [markAll] = useMarkAllNotificationsReadMutation();
+  const push = usePushNotifications();
 
   const items = data?.data?.items || [];
   const unread = data?.data?.unreadCount || 0;
 
+  // Show an in-app toast + OS notification (when the tab is visible) the moment
+  // polling sees a new item. The service worker handles the tab-closed case.
+  const seenIdsRef = useRef(null);
+  useEffect(() => {
+    if (!items.length) return;
+    const currentIds = new Set(items.map((n) => n._id));
+    if (seenIdsRef.current === null) {
+      seenIdsRef.current = currentIds;
+      return;
+    }
+    const fresh = items.filter((n) => !seenIdsRef.current.has(n._id) && !n.read);
+    fresh.forEach((n) => {
+      toast(n.title, { description: n.body });
+      if (
+        document.visibilityState === 'visible' &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          const note = new Notification(n.title, {
+            body: n.body || '',
+            icon: '/favicon.png',
+            tag: n._id,
+          });
+          note.onclick = () => {
+            window.focus();
+            if (n.link) navigate(n.link);
+            note.close();
+          };
+        } catch {
+          /* ignore — sw will deliver instead */
+        }
+      }
+    });
+    seenIdsRef.current = currentIds;
+  }, [items, navigate]);
+
   async function open(n) {
     if (!n.read) await markRead(n._id);
     if (n.link) navigate(n.link);
+  }
+
+  async function togglePush() {
+    if (push.subscribed) {
+      const r = await push.disable();
+      if (r.ok) toast.success('Push notifications turned off');
+    } else {
+      const r = await push.enable();
+      if (r.ok) {
+        toast.success('Push notifications enabled');
+      } else if (r.reason === 'denied') {
+        toast.error('Permission denied — enable notifications in your browser settings.');
+      } else if (r.reason === 'ios-install-required') {
+        toast.message('On iPhone & iPad', {
+          description:
+            'Tap the Share icon in Safari, then "Add to Home Screen". Open the app from the Home Screen and turn on notifications from there.',
+          duration: 10000,
+        });
+      } else if (r.reason === 'unsupported') {
+        toast.error('Push notifications are not supported in this browser.');
+      } else {
+        toast.error('Could not enable push notifications.');
+      }
+    }
   }
 
   return (
@@ -60,15 +125,46 @@ export default function NotificationBell() {
       <DropdownContent className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <span className="text-sm font-medium text-foreground">Notifications</span>
-          {unread > 0 && (
-            <button
-              type="button"
-              onClick={() => markAll()}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <CheckCheck className="h-3 w-3" /> Mark all read
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {(push.supported || push.needsIOSInstall) && (
+              <button
+                type="button"
+                onClick={togglePush}
+                disabled={push.loading}
+                title={
+                  push.needsIOSInstall
+                    ? 'Add to Home Screen to enable iOS push'
+                    : push.subscribed
+                    ? 'Turn off push notifications'
+                    : 'Turn on push notifications'
+                }
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                {push.subscribed ? (
+                  <>
+                    <BellOff className="h-3 w-3" /> Off
+                  </>
+                ) : push.needsIOSInstall ? (
+                  <>
+                    <Bell className="h-3 w-3" /> Install to enable
+                  </>
+                ) : (
+                  <>
+                    <Bell className="h-3 w-3" /> Enable push
+                  </>
+                )}
+              </button>
+            )}
+            {unread > 0 && (
+              <button
+                type="button"
+                onClick={() => markAll()}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <CheckCheck className="h-3 w-3" /> Mark all read
+              </button>
+            )}
+          </div>
         </div>
         <div className="max-h-96 overflow-y-auto scrollbar-thin">
           {items.length === 0 ? (

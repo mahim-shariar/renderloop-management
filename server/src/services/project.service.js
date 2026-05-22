@@ -22,8 +22,12 @@ const POPULATE = [
  * Editors and clients must never see the real client budget. This returns a
  * plain object with `budgetCents` removed and `myPayoutCents` (what the viewer
  * is paid for this project) added. Staff (admin/manager) get the full object.
+ *
+ * Payouts are stored as USD cents; pass `ctx = { rates, payoutCurrency }` to
+ * have the editor's payout converted into — and labelled with — their own
+ * currency (e.g. BDT). `ctx` comes from viewerCurrencyContext() in the controller.
  */
-export function sanitizeProjectForViewer(project, user) {
+export function sanitizeProjectForViewer(project, user, ctx = null) {
   const obj = typeof project?.toJSON === 'function' ? project.toJSON() : { ...project };
   const isStaff = user && (user.role === 'admin' || user.role === 'manager');
   if (isStaff) return obj;
@@ -33,13 +37,26 @@ export function sanitizeProjectForViewer(project, user) {
     const au = a.user?._id || a.user;
     return au?.toString() === uid;
   });
-  obj.myPayoutCents = mine?.payoutCents ?? 0;
+
+  // The editor is shown payouts in their own currency, not USD.
+  const payoutCurrency = (ctx?.payoutCurrency || 'USD').toUpperCase();
+  const rates = ctx?.rates;
+  const toPayoutCurrency = (usdCents) => {
+    if (!usdCents || payoutCurrency === 'USD' || !rates) return Math.round(usdCents || 0);
+    return Math.round(usdCents * (rates[payoutCurrency] || 1));
+  };
+
+  obj.myPayoutCents = toPayoutCurrency(mine?.payoutCents ?? 0);
+  // Drop the client budget and re-label currency: for an editor view the only
+  // amount left (myPayoutCents) is in their payout currency.
   delete obj.budgetCents;
-  // Strip the per-person payouts of OTHER editors too.
+  obj.currency = payoutCurrency;
+  // Strip the per-person payouts of OTHER editors; convert the viewer's own.
   obj.assignedEditors = (obj.assignedEditors || []).map((a) => {
     const au = a.user?._id || a.user;
     const copy = { ...a };
     if (au?.toString() !== uid) delete copy.payoutCents;
+    else copy.payoutCents = toPayoutCurrency(copy.payoutCents ?? 0);
     return copy;
   });
   return obj;

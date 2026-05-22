@@ -20,6 +20,7 @@ import {
   markPaid,
   salariesSummary,
   buildInvoice,
+  exchangeRates,
 } from '../controllers/finance.controller.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -30,6 +31,9 @@ import { SALARY_TYPES } from '../models/Salary.js';
 const router = Router();
 router.use(authMiddleware);
 router.use(roleMiddleware('admin', 'manager'));
+
+// ----- Currency exchange rates -----
+router.get('/exchange-rates', exchangeRates);
 
 // ----- Payments -----
 router.get('/payments/summary', paymentsSummary);
@@ -59,6 +63,7 @@ router.patch(
   '/payments/:id',
   param('id').isMongoId(),
   body('amountCents').optional().isInt({ min: 0 }).toInt(),
+  body('currency').optional().isIn(CURRENCIES),
   body('status').optional().isIn(PAYMENT_STATUSES),
   body('source').optional().isIn(PAYMENT_SOURCES),
   body('client').optional({ values: 'null' }).isMongoId(),
@@ -93,6 +98,7 @@ router.patch(
   '/expenses/:id',
   param('id').isMongoId(),
   body('amountCents').optional().isInt({ min: 0 }).toInt(),
+  body('currency').optional().isIn(CURRENCIES),
   body('category').optional().isIn(EXPENSE_CATEGORIES),
   body('paid').optional().isBoolean().toBoolean(),
   body('recurring').optional().isBoolean().toBoolean(),
@@ -122,6 +128,7 @@ router.patch(
   '/salaries/:id',
   param('id').isMongoId(),
   body('amountCents').optional().isInt({ min: 0 }).toInt(),
+  body('currency').optional().isIn(CURRENCIES),
   body('paid').optional().isBoolean().toBoolean(),
   validate,
   updateSalary

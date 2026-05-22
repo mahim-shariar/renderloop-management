@@ -23,7 +23,18 @@ export const AVAILABILITIES = [
 
 export const AVAILABILITY_BY_KEY = Object.fromEntries(AVAILABILITIES.map((a) => [a.key, a]));
 
-export const PAYOUT_METHODS = ['wise', 'payoneer', 'bank', 'crypto', 'paypal', 'other'];
+// Includes Bangladeshi mobile financial services (bKash, Nagad, Rocket).
+export const PAYOUT_METHODS = [
+  'wise',
+  'payoneer',
+  'bank',
+  'crypto',
+  'paypal',
+  'bkash',
+  'nagad',
+  'rocket',
+  'other',
+];
 
 export const ROLE_BADGE_CLASS = {
   blue: 'bg-blue-500/15 text-blue-300 border-blue-500/30',

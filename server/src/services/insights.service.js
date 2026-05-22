@@ -6,6 +6,7 @@ import Project from '../models/Project.js';
 import Client from '../models/Client.js';
 import Task from '../models/Task.js';
 import TeamMember from '../models/TeamMember.js';
+import { getRates } from './currency.service.js';
 
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -432,10 +433,19 @@ export async function getMyDashboard(user) {
       .sort('dueDate')
       .limit(25)
       .lean(),
-    TeamMember.findOne({ user: uid }).select('_id').lean(),
+    TeamMember.findOne({ user: uid }).select('_id currency').lean(),
   ]);
 
   const perf = perfAgg[0] || { completed: 0, onTime: 0, avgTurnaround: null };
+
+  // The editor always sees money in their own currency. All amounts are
+  // stored as USD cents, so we convert at display time using live rates.
+  const displayCurrency = (teamMember?.currency || 'USD').toUpperCase();
+  const rates = await getRates();
+  const toDisplay = (usdCents) =>
+    displayCurrency === 'USD'
+      ? Math.round(usdCents || 0)
+      : Math.round((usdCents || 0) * (rates[displayCurrency] || 1));
 
   let earningsThisMonth = 0;
   let pendingPayout = 0;
@@ -444,8 +454,8 @@ export async function getMyDashboard(user) {
       sumAmount(Salary, { teamMember: teamMember._id, paid: true, paidAt: { $gte: monthStart } }),
       sumAmount(Salary, { teamMember: teamMember._id, paid: false }),
     ]);
-    earningsThisMonth = paid.total;
-    pendingPayout = pending.total;
+    earningsThisMonth = toDisplay(paid.total);
+    pendingPayout = toDisplay(pending.total);
   }
 
   const uidStr = user._id.toString();
@@ -462,7 +472,7 @@ export async function getMyDashboard(user) {
       videoType: p.videoType,
       priority: p.priority,
       client: p.client,
-      myPayoutCents: mine?.payoutCents ?? 0,
+      myPayoutCents: toDisplay(mine?.payoutCents ?? 0),
     };
   };
 
@@ -483,6 +493,7 @@ export async function getMyDashboard(user) {
       ).length,
       earningsThisMonth,
       pendingPayout,
+      displayCurrency,
     },
     myProjects: activeProjects.map(decorate),
     myTasks: openTasks,

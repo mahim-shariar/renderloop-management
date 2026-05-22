@@ -12,7 +12,12 @@ import { CURRENCIES } from '@/lib/currency.js';
 import Button from '@/components/ui/Button.jsx';
 import { useListTeamQuery } from '@/features/team/teamApi.js';
 import { useListProjectsQuery } from '@/features/projects/projectsApi.js';
-import { useCreateSalaryMutation, useUpdateSalaryMutation } from './financeApi.js';
+import {
+  useCreateSalaryMutation,
+  useUpdateSalaryMutation,
+  useExchangeRatesQuery,
+} from './financeApi.js';
+import { formatCents } from '@/features/projects/projectConstants.js';
 import { cn } from '@/lib/cn.js';
 
 const schema = z.object({
@@ -101,12 +106,31 @@ export default function PayoutDialog({ open, onOpenChange, salary }) {
   const team = teamData?.data?.items || [];
   const projects = projData?.data?.items || [];
 
+  // Live USD-base rates so we can preview the payout in the editor's currency.
+  const { data: ratesData } = useExchangeRatesQuery(undefined, { skip: !open });
+  const rates = ratesData?.data?.rates;
+
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm({ resolver: zodResolver(schema), defaultValues: EMPTY });
+
+  // The editor always sees payouts in their own currency, whatever currency
+  // the admin enters here. Preview that converted amount below.
+  const memberId = watch('teamMember');
+  const amount = watch('amount');
+  const currency = watch('currency');
+  const selectedMember = team.find((m) => m._id === memberId);
+  const editorCurrency = selectedMember?.currency;
+  const editorPreviewCents =
+    rates && Number(amount) > 0 && editorCurrency
+      ? Math.round(
+          (Number(amount) / (rates[currency] || 1)) * (rates[editorCurrency] || 1) * 100
+        )
+      : null;
 
   useEffect(() => {
     if (open) reset(toShape(salary));
@@ -188,6 +212,20 @@ export default function PayoutDialog({ open, onOpenChange, salary }) {
             <Input placeholder="Wise transfer #..." {...register('transactionRef')} />
           </Field>
         </div>
+        {editorPreviewCents != null && (
+          <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">
+              {selectedMember?.name || 'This editor'} will see this payout as{' '}
+            </span>
+            <span className="font-semibold text-foreground">
+              {formatCents(editorPreviewCents, editorCurrency)}
+            </span>
+            <span className="text-muted-foreground">
+              {' '}
+              on their dashboard{editorCurrency !== currency ? ` (their currency: ${editorCurrency})` : ''}.
+            </span>
+          </div>
+        )}
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" {...register('paid')} className="h-4 w-4 rounded border-border" />
           Mark as already paid

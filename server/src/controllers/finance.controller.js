@@ -1,5 +1,13 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import * as svc from '../services/finance.service.js';
+import { getRates } from '../services/currency.service.js';
+
+// ----- Currency exchange rates -----
+
+export const exchangeRates = asyncHandler(async (_req, res) => {
+  const rates = await getRates();
+  res.json({ success: true, data: { base: 'USD', rates } });
+});
 
 // ----- Payments -----
 

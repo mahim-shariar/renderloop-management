@@ -12,15 +12,13 @@ export default function AppLayout() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
-      {/* Ambient gradient backdrop */}
+      {/* Ambient gradient backdrop — pure CSS radial gradients.
+          filter:blur() on a fixed layer freezes iOS Safari, so the glow
+          is painted with gradients (zero compositing cost) instead. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background"
-      >
-        {/* Lighter blur radii — heavy filter:blur freezes Safari on iPhone. */}
-        <div className="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-primary/20 blur-[80px]" />
-        <div className="absolute -bottom-40 right-[-6rem] h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[80px]" />
-      </div>
+        className="app-ambient pointer-events-none fixed inset-0 -z-10 bg-background"
+      />
 
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 

@@ -6,6 +6,31 @@ import Project from '../models/Project.js';
 import ApiError from '../utils/ApiError.js';
 import { logActivity } from './activity.service.js';
 import { formatCents } from '../utils/format.js';
+import { toUSD, getRates } from './currency.service.js';
+
+/**
+ * Convert an incoming finance record to USD storage. Whatever currency the
+ * amount was entered in, it is stored as USD cents; the original entry is
+ * preserved on originalAmountCents/originalCurrency/exchangeRate for audit.
+ * No-ops when there is no amount, or when the amount is already in USD.
+ */
+async function normalizeToUSD(data) {
+  if (data == null || data.amountCents == null) return data;
+  const currency = (data.currency || 'USD').toUpperCase();
+  if (currency === 'USD') {
+    return { ...data, currency: 'USD' };
+  }
+  const rates = await getRates();
+  const usdCents = await toUSD(data.amountCents, currency);
+  return {
+    ...data,
+    originalAmountCents: data.amountCents,
+    originalCurrency: currency,
+    exchangeRate: rates[currency] || null,
+    amountCents: usdCents,
+    currency: 'USD',
+  };
+}
 
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -54,7 +79,7 @@ export async function getPayment(id) {
 }
 
 export async function createPayment(data, userId) {
-  const payment = await Payment.create({ ...data, createdBy: userId });
+  const payment = await Payment.create({ ...(await normalizeToUSD(data)), createdBy: userId });
   if (payment.status === 'received') {
     await logActivity({
       actor: userId,
@@ -68,7 +93,10 @@ export async function createPayment(data, userId) {
   return payment;
 }
 export async function updatePayment(id, data) {
-  const p = await Payment.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  const p = await Payment.findByIdAndUpdate(id, await normalizeToUSD(data), {
+    new: true,
+    runValidators: true,
+  });
   if (!p) throw ApiError.notFound('Payment not found');
   return p;
 }
@@ -127,10 +155,13 @@ export async function listExpenses(params = {}) {
 }
 
 export async function createExpense(data, userId) {
-  return Expense.create({ ...data, createdBy: userId });
+  return Expense.create({ ...(await normalizeToUSD(data)), createdBy: userId });
 }
 export async function updateExpense(id, data) {
-  const e = await Expense.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  const e = await Expense.findByIdAndUpdate(id, await normalizeToUSD(data), {
+    new: true,
+    runValidators: true,
+  });
   if (!e) throw ApiError.notFound('Expense not found');
   return e;
 }
@@ -185,10 +216,13 @@ export async function listSalaries(params = {}) {
 }
 
 export async function createSalary(data, userId) {
-  return Salary.create({ ...data, createdBy: userId });
+  return Salary.create({ ...(await normalizeToUSD(data)), createdBy: userId });
 }
 export async function updateSalary(id, data) {
-  const s = await Salary.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  const s = await Salary.findByIdAndUpdate(id, await normalizeToUSD(data), {
+    new: true,
+    runValidators: true,
+  });
   if (!s) throw ApiError.notFound('Payout not found');
   return s;
 }
